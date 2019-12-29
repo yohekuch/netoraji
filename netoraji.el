@@ -94,7 +94,7 @@
   '((t :foreground "LightSkyBlue"))
   "SONGのフェイス"
   :group 'netoraji)
-
+
 ;;;; User options
 
 (defcustom netoraji-item-format "%3l %t %n %d%g%e%u%s"
@@ -115,117 +115,6 @@
 "
   :group 'netoraji
   :type 'string)
-
-;;;; Internal definitions
-
-(defconst netoraji-headlines-url "http://yp.ladio.net/stats/list.v2.dat"
-  "ねとらじヘッドラインのURL")
-
-(defvar netoraji-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "g") #'netoraji)
-    (define-key map (kbd "n") #'netoraji-next-item)
-    (define-key map (kbd "p") #'netoraji-previous-item)
-    (define-key map (kbd "t") #'netoraji--browse-url)
-    (define-key map (kbd "l") #'netoraji--play-channel)
-    (define-key map (kbd "k") #'kill-ladio)
-    (define-key map (kbd "+") #'netoraji-play-increase-volume)
-    (define-key map (kbd "-") #'netoraji-play-decrease-volume)
-    map)
-  "ねとらじバッファ上でのキーマップ")
-
-(defcustom netoraji-after-render-hook ()
-  ""
-  :group 'netoraji
-  :type 'hook)
-
-;;;; Utils
-
-;;;; Motion
-
-(defun netoraji-next-item ()
-  ""
-  (interactive)
-  (let* ((pos (point))
-         (burlp (get-text-property pos 'burl)))
-    (when burlp
-      (setq pos (next-single-property-change pos 'burl)))
-    (setq pos (next-single-property-change pos 'burl))
-    (when pos
-      (goto-char pos))))
-
-(defun netoraji-previous-item ()
-  "一つ前のねとらじタイトルの先頭へポイントを移動する。"
-  (interactive)
-  (let ((pos (previous-single-property-change (point) 'burl)))
-    (when pos
-      (progn
-        (unless (get-text-property pos 'burl)
-          (setq pos (previous-single-property-change pos 'burl)))
-        (goto-char pos)))))
-
-;;;; Listen
-
-(defcustom netoraji-play-format "mplayer -really-quiet %s 2>/dev/null"
-  "ねとらじを再生するプレーヤーのコマンド"
-  :group 'netoraji)
-
-(defun netoraji--play-channel ()
-  (interactive)
-  (let ((url (button-get (point) 'burl))
-        (inhibit-read-only t))
-    (start-process-shell-command "prc-netoraji"
-                                 "buf-netoraji"
-                                 (format netoraji-play-format url))
-    (put-text-property (point-at-bol) (point-at-eol)
-                       'face 'bold)
-    (beginning-of-line)))
-
-(defun netoraji-play-increase-volume ()
-  (interactive)
-  (process-send-string "prc-netoraji" "*"))
-
-(defun netoraji-play-decrease-volume ()
-  (interactive)
-  (process-send-string "prc-netoraji" "/"))
-
-(defun kill-ladio ()
-  (interactive)
-  (kill-process "prc-netoraji")
-  (message "Player has beed stopped."))
-
-;;;; UI
-
-(defun netoraji-fix-time (tims)
-  "yy/mm/dd HH:MM:SS を YYYY-mm-dd HH:MM:SS に変換した文字列を返す。"
-  (s-replace "/" "-" (concat "20" tims)))
-
-(defun netoraji-elapsed-time (tims)
-  "放送開始時刻を元に現在までの経過時間 HHH:MM:SS を文字列で返す。
-ただし、1000時間以上のものは 999:59:59 固定とする。
-ねとらじの規約上或いはシステム上そこまでの長時間放送が可能なのかは不明。"
-  (let* ((stime (netoraji-fix-time tims))
-         (encoded-stime (apply 'encode-time (parse-time-string stime)))
-         (elsec (float-time (time-subtract nil encoded-stime)))
-         (els (mod elsec 60))
-         (elm (mod (/ elsec 60) 60))
-         (elh (/ elsec 60 60)))
-    (if (>= elh 1000)
-        "999:59:59"
-      (format "%3d:%02d:%02d" elh elm els))))
-
-(define-derived-mode netoraji-mode special-mode "NTRJ"
-  "Major mode for netoraji."
-  :group 'netoraji
-  (setq truncate-lines t)
-  (buffer-disable-undo))
-
-;;;; Retrieval
-
-(defun netoraji--browse-url ()
-  "関連URLをブラウザで開く"
-  (interactive)
-  (eww (button-get (point) 'rurl)))
 
 (defcustom netoraji-current-listener-format "[%3s]"
   "現在リスナー数の表示形式"
@@ -281,6 +170,110 @@
   "SONGの表示形式"
   :group 'netoraji
   :type 'string)
+
+;;;; Internal definitions
+
+(defconst netoraji-headlines-url "http://yp.ladio.net/stats/list.v2.dat"
+  "ねとらじヘッドラインのURL")
+
+(defvar netoraji-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "g") #'netoraji)
+    (define-key map (kbd "n") #'netoraji-next-item)
+    (define-key map (kbd "p") #'netoraji-previous-item)
+    (define-key map (kbd "t") #'netoraji--browse-url)
+    (define-key map (kbd "l") #'netoraji--play-channel)
+    (define-key map (kbd "k") #'kill-ladio)
+    (define-key map (kbd "+") #'netoraji-play-increase-volume)
+    (define-key map (kbd "-") #'netoraji-play-decrease-volume)
+    map)
+  "ねとらじバッファ上でのキーマップ")
+
+(defcustom netoraji-after-render-hook ()
+  ""
+  :group 'netoraji
+  :type 'hook)
+
+;;;; Utils
+
+;;;; Motion
+
+(defun netoraji-next-item ()
+  ""
+  (interactive)
+  (let* ((pos (point))
+         (burlp (get-text-property pos 'burl)))
+    (when burlp
+      (setq pos (next-single-property-change pos 'burl)))
+    (setq pos (next-single-property-change pos 'burl))
+    (when pos
+      (goto-char pos))))
+
+(defun netoraji-previous-item ()
+  "一つ前のねとらじタイトルの先頭へポイントを移動する。"
+  (interactive)
+  (let ((pos (previous-single-property-change (point) 'burl)))
+    (when pos
+      (progn
+        (unless (get-text-property pos 'burl)
+          (setq pos (previous-single-property-change pos 'burl)))
+        (goto-char pos)))))
+
+;;;; Listen
+
+(defcustom netoraji-play-format "mplayer -really-quiet %s 2>/dev/null"
+  "ねとらじを再生するプレーヤーのコマンド"
+  :group 'netoraji)
+
+(defun netoraji--play-channel ()
+  (interactive)
+  (let ((url (button-get (point) 'burl))
+        (inhibit-read-only t))
+    (start-process-shell-command "prc-netoraji"
+                                 "buf-netoraji"
+                                 (format netoraji-play-format url))
+    (put-text-property (point-at-bol) (point-at-eol)
+                       'face 'bold)
+    (beginning-of-line)))
+
+(defun netoraji-play-increase-volume ()
+  (interactive)
+  (process-send-string "prc-netoraji" "*"))
+
+(defun netoraji-play-decrease-volume ()
+  (interactive)
+  (process-send-string "prc-netoraji" "/"))
+
+(defun kill-ladio ()
+  (interactive)
+  (kill-process "prc-netoraji")
+  (message "Player has beed stopped."))
+
+;;;; UI
+
+(defun netoraji-fix-time (tims)
+  "yy/mm/dd HH:MM:SS を YYYY-mm-dd HH:MM:SS に変換した文字列を返す。"
+  (s-replace "/" "-" (concat "20" tims)))
+
+(defun netoraji-elapsed-time (tims)
+  "放送開始時刻を元に現在までの経過時間 HHH:MM:SS を文字列で返す。
+ただし、1000時間以上のものは 999:59:59 固定とする。
+ねとらじの規約上或いはシステム上そこまでの長時間放送が可能なのかは不明。"
+  (let* ((stime (netoraji-fix-time tims))
+         (encoded-stime (apply 'encode-time (parse-time-string stime)))
+         (elsec (float-time (time-subtract nil encoded-stime)))
+         (els (mod elsec 60))
+         (elm (mod (/ elsec 60) 60))
+         (elh (/ elsec 60 60)))
+    (if (>= elh 1000)
+        "999:59:59"
+      (format "%3d:%02d:%02d" elh elm els))))
+
+(defun netoraji--browse-url ()
+  "関連URLをブラウザで開く"
+  (interactive)
+  (eww (button-get (point) 'rurl)))
+
 
 (defun netoraji--render-item (channel)
   "整形された1アイテム分のテキストをプロパティ付きで返す。"
@@ -368,6 +361,14 @@
   (goto-char (point-min))
   (sort-lines t (point-min) (point-max)))
 
+(define-derived-mode netoraji-mode special-mode "NTRJ"
+  "Major mode for netoraji."
+  :group 'netoraji
+  (setq truncate-lines t)
+  (buffer-disable-undo))
+
+;;;; Retrieval
+
 (defun netoraji--parse-headlines ()
   "ヘッドライン取得用のdatをパースし放送中の各番組情報が入ったリストを返す。
 リストの各要素は番組情報を構成するハッシュテーブルである。"
@@ -399,7 +400,7 @@
         (mapcar #'netoraji--display-item (netoraji--read-contents))
         (pop-to-buffer (current-buffer))
         (message "Headlines retrieved.")))))
-
+
 ;;;; Feeds
 
 ;;;###autoload
