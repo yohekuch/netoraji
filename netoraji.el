@@ -246,10 +246,6 @@
 
 ;;;; Listen
 
-(defcustom netoraji-play-format "mplayer -really-quiet %s 2>/dev/null"
-  "ねとらじを再生するプレーヤーのコマンド"
-  :group 'netoraji)
-
 (defun netoraji--play-listen-radio ()
   "番組を外部プレーヤー(MPlayer)で再生する。既に再生中の番組があれば先に終了させる。
 再生用コマンドは`netoraji-play-format'で指定する。"
@@ -470,14 +466,6 @@
         (netoraji--set-playing-channel id))
       (pop-to-buffer (current-buffer))
       (message "Headlines retrieved."))))
-
-(with-current-buffer "*netoraji*"
-  (local-variable-p 'netoraji-play-process))
-
-(with-current-buffer "*netoraji*"
-  (let ((inhibit-read-only t))
-    (erase-buffer)
-    (netoraji-mode)))
 
 
 ;;;; Feeds
