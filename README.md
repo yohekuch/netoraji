@@ -6,3 +6,8 @@ Netoraji(ねとらじ) client for Emacs
 
 ## スクリーンショット
 ![screenshot](Screenshot.png) 
+
+## インストール＆起動
+netoraji.elをロードパスの通ったディレクトリに配置し、(require 'netoraji)を評価します。M-x netoraji とすることで起動します。
+
+## キーバインディング
