@@ -27,6 +27,19 @@
 ;;
 ;; Enjoy!
 
+;; TODO
+;; フックを定義する
+;; listenするとき、既に聞いている番組があれば先にkillする
+;; done killするとき、フェイスを元に戻す
+;; done reloadするとき、listen中のフェイスを維持する
+;; done reload後、ポイントを番組名の先頭に持ってく
+;; done タイトル以外でplay-channelすると放送は聞けないが、フェイスが変わってしまうのを何とかする。
+;; 関数名に統一性を持たせる
+;; 関数の説明文を書く
+;; タイトル->DJ名->ジャンル・・・と次の情報へ移動する関数を作る
+;; 放送が終了した時、再生中フェイスを元に戻す。或いはreloadしてもいいかもしれない。
+;; たぶん番兵を使って実現できる。
+
 ;;; Code:
 
 (require 's)
@@ -36,8 +49,8 @@
   "Simple netoraji client."
   :group 'external
   :prefix "netoraji-")
-
 
+
 ;;;; Faces
 
 (defface netoraji-item-current-listener
@@ -94,6 +107,13 @@
   '((t :foreground "LightSkyBlue"))
   "SONGのフェイス"
   :group 'netoraji)
+
+(defface netoraji-item-playing-name
+  '((t :foreground "white"
+       :weight bold))
+  "再生中番組名のフェイス"
+  :group 'netoraji)
+
 
 ;;;; User options
 
@@ -170,11 +190,15 @@
   "SONGの表示形式"
   :group 'netoraji
   :type 'string)
+
 
 ;;;; Internal definitions
 
 (defconst netoraji-headlines-url "http://yp.ladio.net/stats/list.v2.dat"
   "ねとらじヘッドラインのURL")
+
+;; (defconst netoraji-play-process "prc-netoraji"
+;;   "ねとらじ再生時のプロセス名")
 
 (defvar netoraji-mode-map
   (let ((map (make-sparse-keymap)))
@@ -182,10 +206,10 @@
     (define-key map (kbd "n") #'netoraji-next-item)
     (define-key map (kbd "p") #'netoraji-previous-item)
     (define-key map (kbd "t") #'netoraji--browse-url)
-    (define-key map (kbd "l") #'netoraji--play-channel)
-    (define-key map (kbd "k") #'kill-ladio)
-    (define-key map (kbd "+") #'netoraji-play-increase-volume)
-    (define-key map (kbd "-") #'netoraji-play-decrease-volume)
+    (define-key map (kbd "l") #'netoraji--play-listen-radio)
+    (define-key map (kbd "k") #'netoraji--play-quit-radio)
+    (define-key map (kbd "+") #'netoraji--play-increase-volume)
+    (define-key map (kbd "-") #'netoraji--play-decrease-volume)
     map)
   "ねとらじバッファ上でのキーマップ")
 
@@ -193,13 +217,14 @@
   ""
   :group 'netoraji
   :type 'hook)
+
 
 ;;;; Utils
 
 ;;;; Motion
 
 (defun netoraji-next-item ()
-  ""
+  "一つ次の番組名の先頭へポイントを移動する。"
   (interactive)
   (let* ((pos (point))
          (burlp (get-text-property pos 'burl)))
@@ -210,14 +235,14 @@
       (goto-char pos))))
 
 (defun netoraji-previous-item ()
-  "一つ前のねとらじタイトルの先頭へポイントを移動する。"
+  "一つ前の番組名の先頭へポイントを移動する。"
   (interactive)
   (let ((pos (previous-single-property-change (point) 'burl)))
     (when pos
-      (progn
-        (unless (get-text-property pos 'burl)
-          (setq pos (previous-single-property-change pos 'burl)))
-        (goto-char pos)))))
+      (unless (get-text-property pos 'burl)
+        (setq pos (previous-single-property-change pos 'burl)))
+      (goto-char pos))))
+
 
 ;;;; Listen
 
@@ -225,29 +250,51 @@
   "ねとらじを再生するプレーヤーのコマンド"
   :group 'netoraji)
 
-(defun netoraji--play-channel ()
+(defun netoraji--play-listen-radio ()
+  "番組を外部プレーヤー(MPlayer)で再生する。既に再生中の番組があれば先に終了させる。
+再生用コマンドは`netoraji-play-format'で指定する。"
   (interactive)
   (let ((url (button-get (point) 'burl))
         (inhibit-read-only t))
-    (start-process-shell-command "prc-netoraji"
-                                 "buf-netoraji"
-                                 (format netoraji-play-format url))
-    (put-text-property (point-at-bol) (point-at-eol)
-                       'face 'bold)
-    (beginning-of-line)))
+    (netoraji--play-quit-radio)
+    (when url
+      (set (make-local-variable 'netoraji-play-process)
+           (start-process "netoraji-play-proc"
+                          "netoraji-play-buf"
+                          "mplayer"
+                          "-quiet" "-slave"
+                          (format "%s" url)))
+      (add-text-properties (previous-single-property-change (+ (point) 1) 'burl)
+                           (next-single-property-change (point) 'burl)
+                           '(face netoraji-item-playing-name play t))
+      (message "Start playing %s" url))))
 
-(defun netoraji-play-increase-volume ()
+(defun netoraji--play-increase-volume ()
+  "再生ボリュームを上げる。(MPlayerのみ対応)"
   (interactive)
-  (process-send-string "prc-netoraji" "*"))
+  (ignore-errors (process-send-string netoraji-play-process "volume 1\n")))
 
-(defun netoraji-play-decrease-volume ()
+(defun netoraji--play-decrease-volume ()
+  "再生ボリュームを下げる。(MPlayerのみ対応)"
   (interactive)
-  (process-send-string "prc-netoraji" "/"))
+  (ignore-errors (process-send-string netoraji-play-process "volume -1\n")))
 
-(defun kill-ladio ()
+(defun netoraji--play-quit-radio ()
+  "再生を終了する。(MPlayerのみ対応)"
   (interactive)
-  (kill-process "prc-netoraji")
-  (message "Player has beed stopped."))
+  (ignore-errors (process-send-string netoraji-play-process "quit\n"))
+  (let ((spos (next-single-property-change (point-min) 'play))
+        (inhibit-read-only t))
+    (when spos
+      (save-excursion
+        (goto-char spos)
+        (setq epos (next-single-property-change (point) 'play))
+        (put-text-property spos epos 'face 'netoraji-item-name)
+        (remove-text-properties spos epos '(play nil)))
+      (message "Player has been stopped."))))
+
+;(process-send-string "netoraji-play-proc<2>" "QUIT\n")
+
 
 ;;;; UI
 
@@ -270,30 +317,49 @@
       (format "%3d:%02d:%02d" elh elm els))))
 
 (defun netoraji--browse-url ()
-  "関連URLをブラウザで開く"
+  "関連URLをブラウザ(eww)で開く"
   (interactive)
   (eww (button-get (point) 'rurl)))
 
+(defun netoraji--get-playing-channel ()
+  "一覧からテキストプロパティを元に再生中の番組を探し、id(concat 放送開始時刻 再生URL)を返す。
+再生中の番組がなければnilを返す。"
+  (let ((spos (next-single-property-change (point-min) 'play)))
+    (ignore-errors (get-text-property spos 'id))))
+
+(defun netoraji--set-playing-channel (id)
+  "idを持つ番組名にテキストプロパティ(フェイス、プレイ中フラグ)を付ける。"
+  (let ((spos (point-min))
+        epos)
+    (while (let (tid)
+             (setq spos (next-single-property-change spos 'id))
+             (when spos
+               (setq tid (get-text-property spos 'id))
+               (not (equal id tid)))))
+    (setq epos (next-single-property-change spos 'id))
+    (add-text-properties spos epos
+                         '(face netoraji-item-playing-name play t))))
 
 (defun netoraji--render-item (channel)
   "整形された1アイテム分のテキストをプロパティ付きで返す。"
-  (let ((current-listener (gethash "CLN"  channel))
-        (total-listener   (gethash "CLNS" channel))
-        (max-listener     (gethash "MAX"  channel))
-        (elapsed-time     (netoraji-elapsed-time (gethash "TIMS" channel)))
-        (name             (if (string-empty-p (gethash "NAM" channel))
-                              "None"
-                            (gethash "NAM" channel)))
-        (genre            (gethash "GNL"  channel))
-        (description      (gethash "DESC" channel))
-        (broadcasting-url (concat "http://"
-                                  (gethash "SRV" channel)
-                                  ":"
-                                  (gethash "PRT" channel)
-                                  (gethash "MNT" channel)))
-        (relevant-url     (gethash "URL"  channel))
-        (dj               (gethash "DJ"   channel))
-        (song             (gethash "SONG" channel)))
+  (let* ((current-listener (gethash "CLN"  channel))
+         (total-listener   (gethash "CLNS" channel))
+         (max-listener     (gethash "MAX"  channel))
+         (start-time       (gethash "TIMS" channel))
+         (elapsed-time     (netoraji-elapsed-time start-time))
+         (name             (if (string-empty-p (gethash "NAM" channel))
+                               "None"
+                             (gethash "NAM" channel)))
+         (genre            (gethash "GNL"  channel))
+         (description      (gethash "DESC" channel))
+         (broadcasting-url (concat "http://"
+                                   (gethash "SRV" channel)
+                                   ":"
+                                   (gethash "PRT" channel)
+                                   (gethash "MNT" channel)))
+         (relevant-url     (gethash "URL"  channel))
+         (dj               (gethash "DJ"   channel))
+         (song             (gethash "SONG" channel)))
     (s-trim-right
      (format-spec netoraji-item-format
                   (format-spec-make
@@ -318,7 +384,8 @@
                                   'face 'netoraji-item-name
                                   'burl broadcasting-url
                                   'rurl relevant-url
-                                  'type 'NAM)
+                                  'type 'NAM
+                                  'id (concat start-time broadcasting-url))
                    ?g (if (string-empty-p genre)
                           ""
                         (propertize (format netoraji-genre-format
@@ -356,9 +423,8 @@
                    )))))
 
 (defun netoraji--display-item (item)
-  "番組情報を表示する。"
+  "番組情報をねとらじバッファに表示する。"
   (insert (netoraji--render-item item) "\n")
-  (goto-char (point-min))
   (sort-lines t (point-min) (point-max)))
 
 (define-derived-mode netoraji-mode special-mode "NTRJ"
@@ -366,6 +432,7 @@
   :group 'netoraji
   (setq truncate-lines t)
   (buffer-disable-undo))
+
 
 ;;;; Retrieval
 
@@ -380,8 +447,7 @@
                           (puthash (cadr st) (caddr st) pg))
                         (s-match-strings-all "^\\([A-Z]+\\)=\\(.*\\)$" str))
                 pg))
-            (mapcar 's-trim (s-split "^$" whole-contents)))
-    ))
+            (mapcar 's-trim (s-split "^$" whole-contents)))))
 
 (defun netoraji--read-contents ()
   "Retrieve and read contents of netoraji headlines datfile."
@@ -391,15 +457,28 @@
 
 (defun netoraji--load-headlines ()
   "Retrieve and render netoraji channels from headlines"
-  (let ()
-    (with-current-buffer (get-buffer-create "*netoraji*")
-      (let ((inhibit-read-only t)
-            (sorted-contents))
-        (erase-buffer)
-        (netoraji-mode)
-        (mapcar #'netoraji--display-item (netoraji--read-contents))
-        (pop-to-buffer (current-buffer))
-        (message "Headlines retrieved.")))))
+  (with-current-buffer (get-buffer-create "*netoraji*")
+    (let ((inhibit-read-only t)
+          (id (netoraji--get-playing-channel)))
+      (erase-buffer)
+      (unless (derived-mode-p #'netoraji-mode)
+        (netoraji-mode)) ; ここでlocal-variableは無効になる
+      (mapcar #'netoraji--display-item (netoraji--read-contents))
+      (goto-char (point-min))
+      (netoraji-next-item)
+      (when id
+        (netoraji--set-playing-channel id))
+      (pop-to-buffer (current-buffer))
+      (message "Headlines retrieved."))))
+
+(with-current-buffer "*netoraji*"
+  (local-variable-p 'netoraji-play-process))
+
+(with-current-buffer "*netoraji*"
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (netoraji-mode)))
+
 
 ;;;; Feeds
 
