@@ -1,6 +1,6 @@
 ;;; netoraji.el --- Netoraji Client for Emacs -*- lexical-binding: t -*-
 
-;; Copyright (C) 2019-2019 The netoraji.el Authors
+;; Copyright (C) 2019-2020 The netoraji.el Authors
 
 ;; Author: Yohei Kuchiki <extentlambda@gmail.com>
 ;; Keywords: Internet-Radio
