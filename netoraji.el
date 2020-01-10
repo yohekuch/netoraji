@@ -1,6 +1,6 @@
 ;;; netoraji.el --- Netoraji Client for Emacs -*- lexical-binding: t -*-
 
-;; Copyright (C) 2019-2020 The netoraji.el Authors
+;; Copyright (C) 2019-2020 Yohei Kuchiki
 
 ;; Author: Yohei Kuchiki <extentlambda@gmail.com>
 ;; Keywords: Internet-Radio
@@ -22,7 +22,7 @@
 
 ;;; Commentary:
 
-;; Read headlines of netoraji and Listen them from Emacs.
+;; Read headlines of netoraji and Listen radio.
 ;; フォーマットデータについての詳細は <http://ladio.wiki.fc2.com>
 ;;
 ;; Enjoy!
@@ -49,7 +49,6 @@
   "Simple netoraji client."
   :group 'external
   :prefix "netoraji-")
-
 
 ;;;; Faces
 
@@ -113,7 +112,6 @@
        :weight bold))
   "再生中番組名のフェイス"
   :group 'netoraji)
-
 
 ;;;; User options
 
@@ -190,15 +188,11 @@
   "SONGの表示形式"
   :group 'netoraji
   :type 'string)
-
 
 ;;;; Internal definitions
 
 (defconst netoraji-headlines-url "http://yp.ladio.net/stats/list.v2.dat"
   "ねとらじヘッドラインのURL")
-
-;; (defconst netoraji-play-process "prc-netoraji"
-;;   "ねとらじ再生時のプロセス名")
 
 (defvar netoraji-mode-map
   (let ((map (make-sparse-keymap)))
@@ -217,7 +211,6 @@
   ""
   :group 'netoraji
   :type 'hook)
-
 
 ;;;; Utils
 
@@ -242,9 +235,8 @@
       (unless (get-text-property pos 'burl)
         (setq pos (previous-single-property-change pos 'burl)))
       (goto-char pos))))
-
 
-;;;; Listen
+;;;; Play
 
 (defun netoraji--play-listen-radio ()
   "番組を外部プレーヤー(MPlayer)で再生する。既に再生中の番組があれば先に終了させる。
@@ -288,9 +280,6 @@
         (put-text-property spos epos 'face 'netoraji-item-name)
         (remove-text-properties spos epos '(play nil)))
       (message "Player has been stopped."))))
-
-;(process-send-string "netoraji-play-proc<2>" "QUIT\n")
-
 
 ;;;; UI
 
@@ -428,7 +417,6 @@
   :group 'netoraji
   (setq truncate-lines t)
   (buffer-disable-undo))
-
 
 ;;;; Retrieval
 
@@ -458,7 +446,7 @@
           (id (netoraji--get-playing-channel)))
       (erase-buffer)
       (unless (derived-mode-p #'netoraji-mode)
-        (netoraji-mode)) ; ここでlocal-variableは無効になる
+        (netoraji-mode))
       (mapcar #'netoraji--display-item (netoraji--read-contents))
       (goto-char (point-min))
       (netoraji-next-item)
@@ -466,10 +454,7 @@
         (netoraji--set-playing-channel id))
       (pop-to-buffer (current-buffer))
       (message "Headlines retrieved."))))
-
 
-;;;; Feeds
-
 ;;;###autoload
 (defun netoraji ()
   "Read netoraji headlines."
