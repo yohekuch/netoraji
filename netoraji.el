@@ -54,63 +54,63 @@
 
 (defface netoraji-item-current-listener
   '((t :foreground "white"))
-  "現在リスナー数のフェイス"
+  "Face used for the number of current listeners."
   :group 'netoraji)
 
 (defface netoraji-item-total-listener
   '((t :foreground "white"))
-  "延べリスナー数のフェイス"
+  "Face used for the number of total listeners."
   :group 'netoraji)
 
 (defface netoraji-item-max-listener
   '((t :foreground "white"))
-  "最大リスナー数のフェイス"
+  "Face used for the number of max listeners."
   :group 'netoraji)
 
 (defface netoraji-item-elapsed-time
   '((t :foreground "white"))
-  "経過時間のフェイス"
+  "Face used for elapsed time."
   :group 'netoraji)
 
 (defface netoraji-item-name
   '((t :foreground "cyan"))
-  "番組名のフェイス"
+  "Face used for the program name."
   :group 'netoraji)
 
 (defface netoraji-item-genre
   '((t :foreground "PaleGreen"))
-  "ジャンルのフェイス"
+  "Face used for the genres."
   :group 'netoraji)
 
 (defface netoraji-item-description
   '((t :foreground "LightSalmon"))
-  "説明のフェイス"
+  "Face used for the descriptions."
   :group 'netoraji)
 
 (defface netoraji-item-broadcasting-url
   '((t :foreground "goldenrod"))
-  "放送URLのフェイス"
+  "Face used for the broadcasting URLs."
   :group 'netoraji)
 
 (defface netoraji-item-relevant-url
   '((t :foreground "goldenrod"))
-  "関連URLのフェイス"
+  "Face used for the relevant URLs."
   :group 'netoraji)
 
 (defface netoraji-item-dj
   '((t :foreground "LightGoldenrod"))
-  "DJ名のフェイス"
+  "Face used for the DJ names."
   :group 'netoraji)
 
 (defface netoraji-item-song
   '((t :foreground "LightSkyBlue"))
-  "SONGのフェイス"
+  "Face used for song titles."
   :group 'netoraji)
 
 (defface netoraji-item-playing-name
   '((t :foreground "white"
        :weight bold))
-  "再生中番組名のフェイス"
+  "Face used for the name of the playing program."
   :group 'netoraji)
 
 ;;;; User options
@@ -119,80 +119,79 @@
   "ねとらじバッファにおける各番組情報の表示方法を指定するフォーマット。
 `format-spec'へ第一引数として渡される。%変換指定子は次の通り解釈される。
 
-%l - 現在リスナー数
-%c - 延べリスナー数
-%m - 最大リスナー数
-%t - 放送開始時刻からの経過時間
-%n - 番組名
-%g - ジャンル
-%e - 説明
-%b - 放送URL
-%u - 関連URL
-%d - DJ名
-%s - SONG
-"
+%l - The number of current listener
+%c - The number of total listener
+%m - The number of max listener
+%t - Elapsed time
+%n - Program name
+%g - Genre
+%e - Description
+%b - Broadcasting URL
+%u - Relevant URL
+%d - DJ's name
+%s - SONG"
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-current-listener-format "[%3s]"
-  "現在リスナー数の表示形式"
+  "Format specification for displaying the number of current listener."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-total-listener-format "[%s]"
-  "延べリスナー数の表示形式"
+  "Format specification for displaying the number of total listener."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-max-listener-format "[%s]"
-  "最大リスナー数の表示形式"
+  "Format specification for displaying the number of max listener."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-elapsed-time-format "%s"
-  "経過時間の表示形式"
+  "Format specification for displaying the elapsed time."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-name-format "%s"
-  "番組名の表示形式"
+  "Format specification for displaying the program name."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-genre-format "[%s]"
-  "ジャンルの表示形式"
+  "Format specification for displaying the genre of programs."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-description-format "[%s]"
-  "説明の表示形式"
+  "Format specification for displaying the description of programs."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-broadcasting-url-format "[%s]"
-  "放送URLの表示形式"
+  "Format specification for displaying the broadcasting url."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-relevant-url-format "[%s]"
-  "関連URLの表示形式"
+  "Format specification for displaying the relevant url."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-dj-format "[%s]"
-  "DJ名の表示形式"
+  "Format specification for displaying the DJ's name."
   :group 'netoraji
   :type 'string)
 
 (defcustom netoraji-song-format "[%s]"
-  "SONGの表示形式"
+  "Format specification for displaying the song being broadcasted."
   :group 'netoraji
   :type 'string)
 
 ;;;; Internal definitions
 
 (defconst netoraji-headlines-url "http://yp.ladio.net/stats/list.v2.dat"
-  "ねとらじヘッドラインのURL")
+  "Headlines' URL")
 
 (defvar netoraji-mode-map
   (let ((map (make-sparse-keymap)))
@@ -205,7 +204,7 @@
     (define-key map (kbd "+") #'netoraji--play-increase-volume)
     (define-key map (kbd "-") #'netoraji--play-decrease-volume)
     map)
-  "ねとらじバッファ上でのキーマップ")
+  "Keymap used in netoraji buffer.")
 
 (defcustom netoraji-after-render-hook ()
   ""
@@ -217,7 +216,7 @@
 ;;;; Motion
 
 (defun netoraji-next-item ()
-  "一つ次の番組名の先頭へポイントを移動する。"
+  "Move to the next program name."
   (interactive)
   (let* ((pos (point))
          (burlp (get-text-property pos 'burl)))
@@ -228,7 +227,7 @@
       (goto-char pos))))
 
 (defun netoraji-previous-item ()
-  "一つ前の番組名の先頭へポイントを移動する。"
+  "Move to the previous program name."
   (interactive)
   (let ((pos (previous-single-property-change (point) 'burl)))
     (when pos
@@ -239,8 +238,8 @@
 ;;;; Play
 
 (defun netoraji--play-listen-radio ()
-  "番組を外部プレーヤー(MPlayer)で再生する。既に再生中の番組があれば先に終了させる。
-再生用コマンドは`netoraji-play-format'で指定する。"
+  "Play program at point with MPlayer.
+If it is playing another program, quit the process beforehand."
   (interactive)
   (let ((url (button-get (point) 'burl))
         (inhibit-read-only t))
@@ -258,17 +257,17 @@
       (message "Start playing %s" url))))
 
 (defun netoraji--play-increase-volume ()
-  "再生ボリュームを上げる。(MPlayerのみ対応)"
+  "Increase volume."
   (interactive)
   (ignore-errors (process-send-string netoraji-play-process "volume 1\n")))
 
 (defun netoraji--play-decrease-volume ()
-  "再生ボリュームを下げる。(MPlayerのみ対応)"
+  "Decrease volume."
   (interactive)
   (ignore-errors (process-send-string netoraji-play-process "volume -1\n")))
 
 (defun netoraji--play-quit-radio ()
-  "再生を終了する。(MPlayerのみ対応)"
+  "Quit playing."
   (interactive)
   (ignore-errors (process-send-string netoraji-play-process "quit\n"))
   (let ((spos (next-single-property-change (point-min) 'play))
@@ -302,7 +301,7 @@
       (format "%3d:%02d:%02d" elh elm els))))
 
 (defun netoraji--browse-url ()
-  "関連URLをブラウザ(eww)で開く"
+  "Open relevant URL within eww browser."
   (interactive)
   (eww (button-get (point) 'rurl)))
 
@@ -408,7 +407,7 @@
                    )))))
 
 (defun netoraji--display-item (item)
-  "番組情報をねとらじバッファに表示する。"
+  "Display channel items on the current buffer."
   (insert (netoraji--render-item item) "\n")
   (sort-lines t (point-min) (point-max)))
 
